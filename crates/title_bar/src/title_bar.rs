@@ -249,6 +249,13 @@ impl Render for TitleBar {
         }
 
         let title_bar_settings = *TitleBarSettings::get_global(cx);
+        if title_bar_settings.hide
+            || (title_bar_settings.hide_in_fullscreen
+                && (window.is_fullscreen() || window.is_simple_fullscreen()))
+        {
+            return div().into_any_element();
+        }
+
         let button_layout = title_bar_settings.button_layout;
         let is_git_enabled = ProjectSettings::get_global(cx).git.enabled.status;
 

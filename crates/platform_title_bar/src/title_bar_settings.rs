@@ -4,6 +4,8 @@ use settings::{RegisterSetting, Settings, SettingsContent, TitleBarVisibility};
 #[derive(Copy, Clone, Debug, RegisterSetting)]
 pub struct TitleBarSettings {
     pub show: TitleBarVisibility,
+    pub hide: bool,
+    pub hide_in_fullscreen: bool,
     pub show_branch_status_icon: bool,
     pub show_onboarding_banner: bool,
     pub show_user_picture: bool,
@@ -34,6 +36,8 @@ impl Settings for TitleBarSettings {
         let content = s.title_bar.clone().unwrap();
         TitleBarSettings {
             show: content.show.unwrap(),
+            hide: content.hide.unwrap(),
+            hide_in_fullscreen: content.hide_in_fullscreen.unwrap(),
             show_branch_status_icon: content.show_branch_status_icon.unwrap(),
             show_onboarding_banner: content.show_onboarding_banner.unwrap(),
             show_user_picture: content.show_user_picture.unwrap(),

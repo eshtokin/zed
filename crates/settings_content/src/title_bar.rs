@@ -108,6 +108,14 @@ pub struct TitleBarSettingsContent {
     ///
     /// Default: always
     pub show: Option<TitleBarVisibility>,
+    /// Whether to hide the titlebar.
+    ///
+    /// Default: false
+    pub hide: Option<bool>,
+    /// Whether to hide the titlebar when the window is fullscreen.
+    ///
+    /// Default: false
+    pub hide_in_fullscreen: Option<bool>,
     /// Whether to show git status indicators on the branch icon in the title bar.
     /// When enabled, the branch icon changes to reflect the current repository
     /// status (e.g. modified, added, deleted, or conflict).
