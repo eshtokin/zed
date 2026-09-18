@@ -196,6 +196,14 @@ pub struct TerminalSettingsContent {
     ///
     /// Default: 320
     pub default_height: Option<crate::PixelSetting>,
+    /// Whether the terminal panel should float over the workspace instead of occupying a dock.
+    ///
+    /// Default: false
+    pub floating: Option<bool>,
+    /// Margin between the floating terminal panel and the workspace edges.
+    ///
+    /// Default: 48
+    pub floating_margin: Option<crate::PixelSetting>,
     /// The maximum number of lines to keep in the scrollback history.
     /// Maximum allowed value is 100_000, all values above that will be treated as 100_000.
     /// 0 disables the scrolling.
@@ -244,8 +252,8 @@ crate::fallible_options::flattened_deserialize!(TerminalSettingsContent {
         font_size, font_family, font_fallbacks, line_height, font_features, font_weight,
         cursor_shape, blinking, alternate_scroll, option_as_meta, copy_on_select,
         keep_selection_on_copy, open_links_in_mouse_mode, button, dock, starts_open, flexible,
-        default_width, default_height, max_scroll_history_lines, scroll_multiplier, toolbar,
-        scrollbar, minimum_contrast, show_count_badge, bell,
+        default_width, default_height, floating, floating_margin, max_scroll_history_lines,
+        scroll_multiplier, toolbar, scrollbar, minimum_contrast, show_count_badge, bell,
     },
     defaults: {},
 });

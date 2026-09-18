@@ -1738,6 +1738,14 @@ impl Panel for TerminalPanel {
         TerminalSettings::get_global(cx).flexible
     }
 
+    fn is_floating(&self, _window: &Window, cx: &App) -> bool {
+        TerminalSettings::get_global(cx).floating
+    }
+
+    fn floating_margin(&self, _window: &Window, cx: &App) -> Pixels {
+        TerminalSettings::get_global(cx).floating_margin
+    }
+
     fn set_flexible_size(&mut self, flexible: bool, _window: &mut Window, cx: &mut Context<Self>) {
         settings::update_settings_file(self.fs.clone(), cx, move |settings, _| {
             settings.terminal.get_or_insert_default().flexible = Some(flexible);

@@ -60,12 +60,12 @@ use futures::{
 };
 use gpui::{
     Action, AnyEntity, AnyView, AnyWeakView, App, AppContext, AsyncApp, AsyncWindowContext, Axis,
-    Bounds, ClipboardItem, Context, Corners, CursorStyle, Decorations, DragMoveEvent, Entity,
-    EntityId, EventEmitter, FocusHandle, Focusable, Global, HitboxBehavior, Hsla, KeyContext,
-    Keystroke, ManagedView, MouseButton, PathPromptOptions, Point, PromptLevel, Render, ResizeEdge,
-    Size, Stateful, Subscription, SystemWindowTabController, Task, TaskExt, Tiling, WeakEntity,
-    WindowBounds, WindowHandle, WindowId, WindowOptions, actions, canvas, point, relative, size,
-    transparent_black,
+    Bounds, ClipboardItem, Context, CursorStyle, Decorations, DragMoveEvent, Entity, EntityId,
+    EventEmitter, FocusHandle, Focusable, Global, HitboxBehavior, Hsla, KeyContext, Keystroke,
+    ManagedView, MouseButton, PathPromptOptions, Point, PromptLevel, Render, ResizeEdge, Size,
+    Stateful, StyleRefinement, Subscription, SystemWindowTabController, Task, TaskExt, Tiling,
+    WeakEntity, WindowBounds, WindowHandle, WindowId, WindowOptions, actions, canvas, point,
+    relative, size, transparent_black,
 };
 pub use history_manager::*;
 use invalid_item_view::InvalidItemView;
@@ -9121,11 +9121,15 @@ impl Workspace {
             DockPosition::Bottom => ("bottom-dock", "Bottom dock"),
         };
         let dock_is_open = dock.read(cx).is_open();
+        let dock_visible_panel = dock.read(cx).visible_panel().cloned();
+        let dock_is_floating = dock_visible_panel
+            .as_ref()
+            .is_some_and(|panel| panel.is_floating(window, cx));
         let a11y_active = window.is_a11y_active();
 
         let mut container = div()
             .id(dock_element_id)
-            .when(dock_is_open, |this| {
+            .when(dock_is_open && !dock_is_floating, |this| {
                 this.role(gpui::Role::Complementary)
                     .aria_label(dock_label)
                     .when(a11y_active, |this| {
@@ -9141,8 +9145,8 @@ impl Workspace {
         // Apply sizing only when the dock is open. When closed the dock is still
         // included in the element tree so its focus handle remains mounted — without
         // this, toggle_panel_focus cannot focus the panel when the dock is closed.
-        let dock = dock.read(cx);
-        if let Some(panel) = dock.visible_panel() {
+        if let Some(panel) = dock_visible_panel.filter(|panel| !panel.is_floating(window, cx)) {
+            let dock = dock.read(cx);
             let size_state = dock.stored_panel_size_state(panel.as_ref());
             let min_size = panel.min_size(window, cx);
             if position.axis() == Axis::Horizontal {
@@ -9186,26 +9190,66 @@ impl Workspace {
         Some(container)
     }
 
+    fn render_floating_panel(&self, window: &mut Window, cx: &mut App) -> Option<Stateful<Div>> {
+        let panel = self.all_docks().into_iter().find_map(|dock| {
+            let dock = dock.read(cx);
+            let panel = dock.visible_panel()?.clone();
+            panel.is_floating(window, cx).then_some(panel)
+        })?;
+        let margin = panel.floating_margin(window, cx).max(px(0.));
+        Some(
+            div()
+                .id("floating-panel")
+                .role(gpui::Role::Complementary)
+                .aria_label("Floating panel")
+                .occlude()
+                .absolute()
+                .top(margin)
+                .right(margin)
+                .bottom(margin)
+                .left(margin)
+                .overflow_hidden()
+                .border_1()
+                .border_color(cx.theme().colors().border)
+                .bg(cx.theme().colors().panel_background)
+                .shadow_lg()
+                .child(
+                    panel
+                        .to_any()
+                        .cached(StyleRefinement::default().v_flex().size_full()),
+                ),
+        )
+    }
+
     /// Returns the currently-visible major window regions ("parts"), in a stable
     /// cyclic order: title bar, left dock, editor, right dock, bottom dock,
     /// status bar. Closed docks are skipped. Used by
     /// [`FocusNextPart`]/[`FocusPreviousPart`] so keyboard and screen-reader
     /// users can move between regions without a mouse.
-    fn focusable_parts(&self, cx: &App) -> Vec<FocusablePart> {
+    fn focusable_parts(&self, window: &Window, cx: &App) -> Vec<FocusablePart> {
         // The interactive focus target inside an open dock: the active panel, or
         // the dock itself as a fallback. This is what region navigation focuses
         // when no screen reader is active (preserving the previous behavior).
-        fn dock_content_handle(dock: &Entity<Dock>, cx: &App) -> FocusHandle {
-            let dock = dock.read(cx);
+        fn dock_content_handle(dock: &Dock, cx: &App) -> FocusHandle {
             dock.active_panel()
                 .map(|panel| panel.activation_focus_handle(cx))
                 .unwrap_or_else(|| dock.focus_handle(cx))
         }
 
         let dock_part = |dock: &Entity<Dock>, wrapper: &FocusHandle| {
-            dock.read(cx)
-                .is_open()
-                .then(|| FocusablePart::landmark(wrapper.clone(), dock_content_handle(dock, cx)))
+            let dock = dock.read(cx);
+            if !dock.is_open()
+                || dock
+                    .visible_panel()
+                    .is_some_and(|panel| panel.is_floating(window, cx))
+            {
+                return None;
+            }
+
+            Some(FocusablePart::landmark(
+                wrapper.clone(),
+                dock_content_handle(dock, cx),
+            ))
         };
 
         let mut parts = Vec::new();
@@ -9237,6 +9281,16 @@ impl Workspace {
             &self.bottom_dock,
             &self.region_focus_handles.bottom_dock,
         ));
+        parts.extend(self.all_docks().into_iter().find_map(|dock| {
+            let dock = dock.read(cx);
+            let panel = dock.visible_panel()?;
+            panel.is_floating(window, cx).then(|| {
+                FocusablePart::landmark(
+                    panel.panel_focus_handle(cx),
+                    panel.activation_focus_handle(cx),
+                )
+            })
+        }));
         // The status bar is an ARIA toolbar, so region navigation lands on its
         // first control rather than the toolbar container.
         parts.push(FocusablePart::toolbar(
@@ -9248,7 +9302,7 @@ impl Workspace {
     /// Moves focus to the next (or previous) visible window region. See
     /// [`FocusNextPart`].
     fn move_part_focus(&mut self, forward: bool, window: &mut Window, cx: &mut Context<Self>) {
-        let parts = self.focusable_parts(cx);
+        let parts = self.focusable_parts(window, cx);
         if parts.is_empty() {
             return;
         }
@@ -10645,6 +10699,7 @@ impl Render for Workspace {
                                     }
                                 })
                             }))
+                            .children(self.render_floating_panel(window, cx))
                             .children(self.render_notifications(window, cx)),
                     )
                     .when(self.status_bar_visible(cx), |parent| {

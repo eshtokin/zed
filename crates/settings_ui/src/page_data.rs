@@ -6250,7 +6250,7 @@ fn panels_page() -> SettingsPage {
         ]
     }
 
-    fn terminal_panel_section() -> [SettingsPageItem; 5] {
+    fn terminal_panel_section() -> [SettingsPageItem; 7] {
         [
             SettingsPageItem::SectionHeader("Terminal Panel"),
             SettingsPageItem::SettingItem(SettingItem {
@@ -6295,6 +6295,39 @@ fn panels_page() -> SettingsPage {
                     pick: |settings_content| settings_content.terminal.as_ref()?.flexible.as_ref(),
                     write: |settings_content, value, _| {
                         settings_content.terminal.get_or_insert_default().flexible = value;
+                    },
+                }),
+                metadata: None,
+                files: USER,
+            }),
+            SettingsPageItem::SettingItem(SettingItem {
+                title: "Floating Terminal Panel",
+                description: "Whether the terminal panel should float over the workspace instead of occupying a dock.",
+                field: Box::new(SettingField {
+                    organization_override: None,
+                    json_path: Some("terminal.floating"),
+                    pick: |settings_content| settings_content.terminal.as_ref()?.floating.as_ref(),
+                    write: |settings_content, value, _| {
+                        settings_content.terminal.get_or_insert_default().floating = value;
+                    },
+                }),
+                metadata: None,
+                files: USER,
+            }),
+            SettingsPageItem::SettingItem(SettingItem {
+                title: "Floating Terminal Margin",
+                description: "Margin between the floating terminal panel and the workspace edges (in pixels).",
+                field: Box::new(SettingField {
+                    organization_override: None,
+                    json_path: Some("terminal.floating_margin"),
+                    pick: |settings_content| {
+                        settings_content.terminal.as_ref()?.floating_margin.as_ref()
+                    },
+                    write: |settings_content, value, _| {
+                        settings_content
+                            .terminal
+                            .get_or_insert_default()
+                            .floating_margin = value;
                     },
                 }),
                 metadata: None,

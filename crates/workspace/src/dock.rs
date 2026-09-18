@@ -61,6 +61,12 @@ pub trait Panel: Focusable + EventEmitter<PanelEvent> + Render + Sized {
     fn has_flexible_size(&self, _window: &Window, _cx: &App) -> bool {
         false
     }
+    fn is_floating(&self, _window: &Window, _cx: &App) -> bool {
+        false
+    }
+    fn floating_margin(&self, _window: &Window, _cx: &App) -> Pixels {
+        px(0.)
+    }
     fn set_flexible_size(
         &mut self,
         _flexible: bool,
@@ -121,6 +127,8 @@ pub trait PanelHandle: Send + Sync {
     fn size_state_changed(&self, window: &mut Window, cx: &mut App);
     fn supports_flexible_size(&self, cx: &App) -> bool;
     fn has_flexible_size(&self, window: &Window, cx: &App) -> bool;
+    fn is_floating(&self, window: &Window, cx: &App) -> bool;
+    fn floating_margin(&self, window: &Window, cx: &App) -> Pixels;
     fn set_flexible_size(&self, flexible: bool, window: &mut Window, cx: &mut App);
     fn icon(&self, window: &Window, cx: &App) -> Option<ui::IconName>;
     fn icon_tooltip(&self, window: &Window, cx: &App) -> Option<&'static str>;
@@ -221,6 +229,14 @@ where
 
     fn has_flexible_size(&self, window: &Window, cx: &App) -> bool {
         self.read(cx).has_flexible_size(window, cx)
+    }
+
+    fn is_floating(&self, window: &Window, cx: &App) -> bool {
+        self.read(cx).is_floating(window, cx)
+    }
+
+    fn floating_margin(&self, window: &Window, cx: &App) -> Pixels {
+        self.read(cx).floating_margin(window, cx)
     }
 
     fn set_flexible_size(&self, flexible: bool, window: &mut Window, cx: &mut App) {
@@ -1274,9 +1290,16 @@ impl Dock {
 }
 
 impl Render for Dock {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let dispatch_context = Self::dispatch_context(cx);
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let dispatch_context = Self::dispatch_context();
         if let Some(entry) = self.visible_entry() {
+            if entry.panel.is_floating(window, cx) {
+                return div()
+                    .id("dock-panel")
+                    .key_context(dispatch_context)
+                    .track_focus(&self.focus_handle(cx));
+            }
+
             let position = self.position;
             let create_resize_handle = || {
                 let handle = div()
