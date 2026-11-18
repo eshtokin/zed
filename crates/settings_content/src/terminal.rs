@@ -200,6 +200,10 @@ pub struct TerminalSettingsContent {
     ///
     /// Default: false
     pub floating: Option<bool>,
+    /// Whether to show tabs in the terminal panel.
+    ///
+    /// Default: true
+    pub show_tab_bar: Option<bool>,
     /// Margin between the floating terminal panel and the workspace edges.
     ///
     /// Default: 48
@@ -252,8 +256,9 @@ crate::fallible_options::flattened_deserialize!(TerminalSettingsContent {
         font_size, font_family, font_fallbacks, line_height, font_features, font_weight,
         cursor_shape, blinking, alternate_scroll, option_as_meta, copy_on_select,
         keep_selection_on_copy, open_links_in_mouse_mode, button, dock, starts_open, flexible,
-        default_width, default_height, floating, floating_margin, max_scroll_history_lines,
-        scroll_multiplier, toolbar, scrollbar, minimum_contrast, show_count_badge, bell,
+        default_width, default_height, floating, show_tab_bar, floating_margin,
+        max_scroll_history_lines, scroll_multiplier, toolbar, scrollbar, minimum_contrast,
+        show_count_badge, bell,
     },
     defaults: {},
 });

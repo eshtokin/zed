@@ -6250,7 +6250,7 @@ fn panels_page() -> SettingsPage {
         ]
     }
 
-    fn terminal_panel_section() -> [SettingsPageItem; 7] {
+    fn terminal_panel_section() -> [SettingsPageItem; 8] {
         [
             SettingsPageItem::SectionHeader("Terminal Panel"),
             SettingsPageItem::SettingItem(SettingItem {
@@ -6309,6 +6309,29 @@ fn panels_page() -> SettingsPage {
                     pick: |settings_content| settings_content.terminal.as_ref()?.floating.as_ref(),
                     write: |settings_content, value, _| {
                         settings_content.terminal.get_or_insert_default().floating = value;
+                    },
+                }),
+                metadata: None,
+                files: USER,
+            }),
+            SettingsPageItem::SettingItem(SettingItem {
+                title: "Show Tab Bar",
+                description: "Show tabs in the terminal panel.",
+                field: Box::new(SettingField {
+                    organization_override: None,
+                    json_path: Some("terminal.show_tab_bar"),
+                    pick: |settings_content| {
+                        settings_content
+                            .terminal
+                            .as_ref()?
+                            .show_tab_bar
+                            .as_ref()
+                    },
+                    write: |settings_content, value, _| {
+                        settings_content
+                            .terminal
+                            .get_or_insert_default()
+                            .show_tab_bar = value;
                     },
                 }),
                 metadata: None,

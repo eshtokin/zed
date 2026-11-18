@@ -1291,7 +1291,7 @@ impl Dock {
 
 impl Render for Dock {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let dispatch_context = Self::dispatch_context();
+        let dispatch_context = Self::dispatch_context(cx);
         if let Some(entry) = self.visible_entry() {
             if entry.panel.is_floating(window, cx) {
                 return div()

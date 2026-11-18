@@ -948,6 +948,7 @@ impl VsCodeSettings {
             default_width: None,
             dock: None,
             floating: None,
+            show_tab_bar: None,
             floating_margin: None,
             starts_open: None,
             font_fallbacks,
